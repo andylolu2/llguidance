@@ -603,8 +603,31 @@ fn compile_contents_inner(ctx: &Context, contents: &Value) -> Result<Schema> {
     compile_contents_map(ctx, schemadict)
 }
 
-fn compile_contents_map(ctx: &Context, schemadict: IndexMap<&str, &Value>) -> Result<Schema> {
+// Object keys are always strings, so `propertyNames` that accepts every string is a no-op.
+fn property_names_is_noop(ctx: &Context, schema: &Value) -> bool {
+    match schema {
+        Value::Bool(b) => *b,
+        Value::Object(obj) => obj.iter().all(|(k, v)| match k.as_str() {
+            "type" => match v {
+                Value::String(t) => t == "string",
+                Value::Array(ts) => ts.iter().any(|t| t.as_str() == Some("string")),
+                _ => false,
+            },
+            k => META_AND_ANNOTATIONS.contains(&k) || !ctx.draft.is_known_keyword(k),
+        }),
+        _ => false,
+    }
+}
+
+fn compile_contents_map(ctx: &Context, mut schemadict: IndexMap<&str, &Value>) -> Result<Schema> {
     ctx.increment()?;
+
+    if schemadict
+        .get("propertyNames")
+        .is_some_and(|v| property_names_is_noop(ctx, v))
+    {
+        schemadict.shift_remove("propertyNames");
+    }
 
     // We don't need to compile the schema if it's just meta and annotations
     if schemadict

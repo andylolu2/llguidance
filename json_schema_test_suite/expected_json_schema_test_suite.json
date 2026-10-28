@@ -2038,8 +2038,8 @@
         "object with any properties is invalid": "skip_compile"
       },
       "propertyNames with boolean schema true": {
-        "empty object is valid": "skip_compile",
-        "object with any properties is valid": "skip_compile"
+        "empty object is valid": "pass",
+        "object with any properties is valid": "pass"
       },
       "propertyNames with const": {
         "empty object is valid": "skip_compile",

@@ -44,6 +44,8 @@ Object features:
   case of an object used as a map with upper/lower bounds on the number of keys;
   there is also some special handling for either/both being `0` or `1` -
   mostly for the case of at-least-one-property-required
+- `propertyNames` - only no-op forms that accept every string (`true`, `{}`,
+  `{"type": "string"}`, optionally with annotations); other forms are rejected
 
 String features:
 

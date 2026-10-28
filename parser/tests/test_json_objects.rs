@@ -200,3 +200,57 @@ fn linked_list(#[case] obj: &Value) {
 fn linked_list_failures(#[case] obj: &Value) {
     json_schema_check(&LINKED_LIST, obj, false);
 }
+
+#[rstest]
+#[case::bool_true(&json!(true))]
+#[case::empty(&json!({}))]
+#[case::string_type(&json!({"type": "string"}))]
+#[case::string_type_annotated(&json!({"type": "string", "title": "Key", "description": "d"}))]
+#[case::type_list(&json!({"type": ["string", "null"]}))]
+fn property_names_noop(#[case] property_names: &Value) {
+    let schema = json!({
+        "type": "object",
+        "propertyNames": property_names,
+        "additionalProperties": {"type": "string"},
+    });
+    json_schema_check(&schema, &json!({}), true);
+    json_schema_check(&schema, &json!({"a": "x", "b": "y"}), true);
+    json_schema_check(&schema, &json!({"a": 1}), false);
+}
+
+#[test]
+fn property_names_noop_nested() {
+    let schema = json!({
+        "type": "object",
+        "properties": {
+            "m": {
+                "anyOf": [
+                    {"type": "object", "propertyNames": {"type": "string"}, "additionalProperties": {"type": "string"}},
+                    {"type": "null"}
+                ]
+            }
+        },
+        "required": ["m"],
+    });
+    json_schema_check(&schema, &json!({"m": {"k": "v"}}), true);
+    json_schema_check(&schema, &json!({"m": null}), true);
+    json_schema_check(&schema, &json!({"m": {"k": 1}}), false);
+}
+
+#[rstest]
+#[case::bool_false(&json!(false))]
+#[case::pattern(&json!({"type": "string", "pattern": "^[a-z]+$"}))]
+#[case::max_length(&json!({"maxLength": 3}))]
+#[case::enumeration(&json!({"enum": ["a", "b"]}))]
+#[case::constant(&json!({"const": "a"}))]
+#[case::format(&json!({"type": "string", "format": "email"}))]
+#[case::non_string_type(&json!({"type": "integer"}))]
+#[case::reference(&json!({"$ref": "#/$defs/K"}))]
+fn property_names_constraining(#[case] property_names: &Value) {
+    let schema = json!({
+        "type": "object",
+        "$defs": {"K": {"type": "string"}},
+        "propertyNames": property_names,
+    });
+    json_err_test(&schema, "Unimplemented keys: [\"propertyNames\"]");
+}
